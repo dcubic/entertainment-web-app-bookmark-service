@@ -1,0 +1,15 @@
+{
+  "name": "entertainment-web-app-user-service",
+  "version": "1.0.0",
+  "description": "User Microservice for Entertainment Web App backend",
+  "main": "server.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "dcubic",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "express": "^4.19.2"
+  }
+}
