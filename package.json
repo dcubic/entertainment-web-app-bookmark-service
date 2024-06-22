@@ -4,12 +4,17 @@
   "description": "User Microservice for Entertainment Web App backend",
   "main": "server.js",
   "scripts": {
+    "dev": "nodemon server.js",
     "test": "test"
   },
   "author": "dcubic",
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.20.2",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "mongoose": "^8.4.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
   }
 }

@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+
 const { checkRequiredParameters } = require("../utils/middleware");
 
 router.get("/", (req, res) => {
