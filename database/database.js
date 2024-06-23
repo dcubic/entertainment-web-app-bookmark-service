@@ -25,6 +25,18 @@ class DatabaseConnecter {
       await this.mongoServer.stop();
     }
   }
+
+  async closeDatabase() {
+    await mongoose.connection.dropDatabase();
+    await mongoose.connection.close();
+    if (this.mongoServer) { this.mongoServer.stop(); }
+  }
+
+  async clearDatabase() {
+    for (const key in mongoose.connection.collections) {
+      await mongoose.connection.collections[key].deleteMany();
+    }
+  }
 }
 
 const dbConnector = new DatabaseConnecter();

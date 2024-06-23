@@ -8,10 +8,8 @@ router.post("/", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const createdUser = await userHandler.createUser(email, password);
-    console.log(createdUser);
+    // const createdUser = await userHandler.createUser(email, password);
   } catch (error) {
-    console.log(error);
   }
 });
 

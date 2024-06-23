@@ -2,9 +2,17 @@ const express = require("express");
 const router = express.Router();
 
 const { checkRequiredParameters } = require("../utils/middleware");
+const bookmarksHandler = require("../handlers/bookmarksHandler");
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   const userId = req.params.userId;
+
+  try {
+    // const bookmarks = await bookmarksHandler.getBookmarks(userId);
+  } catch(error) {
+    
+  }
+
 });
 
 router.post(
