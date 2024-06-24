@@ -32,6 +32,11 @@ const createUser = async (email, password) => {
 };
 
 const deleteUser = async (userId) => {
+  const notFoundError = {
+    status: 404,
+    message: `User with id \"${userId}\" not found`,
+  };
+
   try {
     const deletedUser = await UserModel.findByIdAndDelete(userId);
 
@@ -41,12 +46,13 @@ const deleteUser = async (userId) => {
         email: deletedUser.email,
       };
     } else {
-      throw {
-        status: 404,
-        message: `User with id \"${userId}\" not found`,
-      };
+      throw notFoundError;
     }
   } catch (error) {
+    if (error.message === notFoundError.message) {
+      throw error;
+    }
+
     throw {
       status: 500,
       message: error.message,

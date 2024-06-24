@@ -1,11 +1,11 @@
-const BookmarkModel = require("../handlers/bookmarkHandler");
+const userHandler = require("../handlers/userHandler");
+const BookmarkModel = require("../models/bookmark");
 
 const getBookmarks = async (userId) => {
-  throwIfNoUserExists(userId);
+  await throwIfNoUserExists(userId);
   try {
-    return await BookmarkModel.find({ userId: userId }).map(
-      (bookmarkObject) => bookmarkObject.title
-    );
+    const bookmarks = await BookmarkModel.find({ userId: userId });
+    return bookmarks.map((bookmarkObject) => bookmarkObject.title);
   } catch (error) {
     throw {
       status: 500,
@@ -15,10 +15,10 @@ const getBookmarks = async (userId) => {
 };
 
 const addBookmark = async (userId, title) => {
-  throwIfNoUserExists(userId);
+  await throwIfNoUserExists(userId);
 
   try {
-    const bookmark = new BookmarkModel(userId, title);
+    const bookmark = new BookmarkModel({ userId, title });
     await bookmark.save();
   } catch (error) {
     if (error.name === "ValidationError") {
@@ -39,11 +39,12 @@ const addBookmark = async (userId, title) => {
   }
 };
 
-const removeBookmarkByTitle = async (userId, title) => {
-  throwIfNoUserExists();
+const deleteBookmarkByTitle = async (userId, title) => {
+  await throwIfNoUserExists(userId);
 
   try {
     const deletionResult = await BookmarkModel.findOneAndDelete({
+      userId: userId,
       title: title,
     });
     if (!deletionResult) {
@@ -53,6 +54,10 @@ const removeBookmarkByTitle = async (userId, title) => {
       };
     }
   } catch (error) {
+    if (error.status == 404) {
+      throw error;
+    }
+    
     throw {
       status: 500,
       message: error.message,
@@ -62,7 +67,7 @@ const removeBookmarkByTitle = async (userId, title) => {
 
 async function throwIfNoUserExists(userId) {
   try {
-    await UserModel.getUserById(userId);
+    await userHandler.getUserById(userId);
   } catch (error) {
     throw {
       status: 404,
@@ -74,5 +79,5 @@ async function throwIfNoUserExists(userId) {
 module.exports = {
   getBookmarks: getBookmarks,
   addBookmark: addBookmark,
-  deleteBookmarkByTitle: deleteBookmarkByTitle
+  deleteBookmarkByTitle: deleteBookmarkByTitle,
 };

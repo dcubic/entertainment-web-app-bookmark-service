@@ -1,5 +1,6 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const { param } = require('express-validator');
 
 const dbConnector = require("./database/database");
 const usersRouter = require("./routes/users");

@@ -123,8 +123,14 @@ describe("getUserById", () => {
   });
 
   it("success case - get two different users with two different ids", async () => {
-    const user1 = await userHandler.createUser('shimmy@shammy.com', 'password123')
-    const user2 = await userHandler.createUser('gandalf@maiarmail.com', 'youshallnotpass')
+    const user1 = await userHandler.createUser(
+      "shimmy@shammy.com",
+      "password123"
+    );
+    const user2 = await userHandler.createUser(
+      "gandalf@maiarmail.com",
+      "youshallnotpass"
+    );
 
     const retrievedUser1 = await userHandler.getUserById(user1.id);
     const retrievedUser2 = await userHandler.getUserById(user2.id);
