@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+const StatusCode = require("../utils/statuscode");
 const UserModel = require("../models/user");
 
 const createUser = async (email, password) => {
@@ -15,7 +17,7 @@ const createUser = async (email, password) => {
   } catch (error) {
     if (error.name === "ValidationError") {
       throw {
-        status: 409,
+        status: StatusCode.CONFLICT,
         errors: Object.entries(error.errors).map(([fieldName, error]) => ({
           fieldName: fieldName,
           message: error.message,
@@ -24,7 +26,7 @@ const createUser = async (email, password) => {
       };
     } else {
       throw {
-        status: 500,
+        status: StatusCode.SERVER_ERROR,
         message: error.message,
       };
     }
@@ -33,9 +35,13 @@ const createUser = async (email, password) => {
 
 const deleteUser = async (userId) => {
   const notFoundError = {
-    status: 404,
+    status: StatusCode.NOT_FOUND,
     message: `User with id \"${userId}\" not found`,
   };
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    throw notFoundError;
+  }
 
   try {
     const deletedUser = await UserModel.findByIdAndDelete(userId);
@@ -54,7 +60,7 @@ const deleteUser = async (userId) => {
     }
 
     throw {
-      status: 500,
+      status: StatusCode.SERVER_ERROR,
       message: error.message,
     };
   }
@@ -69,7 +75,7 @@ const getUserById = async (userId) => {
     };
   } catch (error) {
     throw {
-      status: 404,
+      status: StatusCode.NOT_FOUND,
       message: `User with id \"${userId}\" not found`,
     };
   }
@@ -86,13 +92,13 @@ const getUserByEmail = async (email) => {
       };
     } else {
       throw {
-        status: 404,
+        status: StatusCode.NOT_FOUND,
         message: `User with email \"${email}\" not found`,
       };
     }
   } catch (error) {
     throw {
-      status: 500,
+      status: StatusCode.SERVER_ERROR,
       message: error.message,
     };
   }

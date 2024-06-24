@@ -1,9 +1,8 @@
 const mongoose = require("mongoose");
 
-const userHandler = require("../handlers/userHandler");
-const dbConnector = require("../database/database");
-
-const CONFLICT_STATUS_CODE = 409;
+const userHandler = require("../../handlers/userHandler");
+const dbConnector = require("../../database/database");
+const StatusCode = require('../../utils/statuscode');
 
 beforeAll(async () => await dbConnector.connect());
 
@@ -50,7 +49,7 @@ describe("createUser", () => {
       );
       expect(true).toBe(false); // This shouldn't be reached
     } catch (error) {
-      expect(error.status).toBe(CONFLICT_STATUS_CODE);
+      expect(error.status).toBe(StatusCode.CONFLICT);
 
       const expectedErrors = [
         {
@@ -67,6 +66,21 @@ describe("createUser", () => {
 });
 
 describe("deleteUser", () => {
+  it("error case - userId not formatted as expected ObjectId", async () => {
+    const badUserId = "a";
+    try {
+      await userHandler.deleteUser(badUserId);
+      expect(true).toBe(false);
+    } catch (error) {
+      const expectedError = {
+        status: StatusCode.NOT_FOUND,
+        message: `User with id \"${badUserId}\" not found`,
+      };
+
+      expect(error).toEqual(expectedError);
+    }
+  });
+
   it("error case - user does not exist", async () => {
     const userId = new mongoose.Types.ObjectId();
     try {
@@ -74,7 +88,7 @@ describe("deleteUser", () => {
       expect(true).toBe(false); // Shouldn't reach this
     } catch (error) {
       const expectedError = {
-        status: 404,
+        status: StatusCode.NOT_FOUND,
         message: `User with id \"${userId}\" not found`,
       };
 
@@ -96,7 +110,7 @@ describe("deleteUser", () => {
       expect(true).toBe(false); // Shouldn't reach this
     } catch (error) {
       const expectedError = {
-        status: 404,
+        status: StatusCode.NOT_FOUND,
         message: `User with id \"${createdUser.id}\" not found`,
       };
 
@@ -106,6 +120,21 @@ describe("deleteUser", () => {
 });
 
 describe("getUserById", () => {
+  it("error case - userId not formatted as expected ObjectId", async () => {
+    const badUserId = "a";
+    try {
+      await userHandler.getUserById(badUserId);
+      expect(true).toBe(false);
+    } catch (error) {
+      const expectedError = {
+        status: StatusCode.NOT_FOUND,
+        message: `User with id \"${badUserId}\" not found`,
+      };
+
+      expect(error).toEqual(expectedError);
+    }
+  });
+
   it("error case - no such user exists", async () => {
     const userId = new mongoose.Types.ObjectId();
 
@@ -114,7 +143,7 @@ describe("getUserById", () => {
       expect(true).toBe(false); // Shouldn't reach this
     } catch (error) {
       const expectedError = {
-        status: 404,
+        status: StatusCode.NOT_FOUND,
         message: `User with id \"${userId}\" not found`,
       };
 

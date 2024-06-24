@@ -1,20 +1,5 @@
-const express = require("express");
-const bodyParser = require("body-parser");
-const { param } = require('express-validator');
-
-const dbConnector = require("./database/database");
-const usersRouter = require("./routes/users");
-const bookmarksRouter = require("./routes/bookmarks");
-const { checkRequiredParameters } = require("./utils/middleware");
-
-const app = express();
-app.use(bodyParser.json());
-app.use("/users", usersRouter);
-app.use(
-  "/users/:userId/bookmarks",
-  checkRequiredParameters(["userId"]),
-  bookmarksRouter
-);
+const dbConnector = require("../database/database");
+const app = require("./app/app");
 
 const port = process.env.PORT || 3000;
 

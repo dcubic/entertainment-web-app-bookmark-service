@@ -1,5 +1,6 @@
 const userHandler = require("../handlers/userHandler");
 const BookmarkModel = require("../models/bookmark");
+const StatusCode = require('../utils/statuscode');
 
 const getBookmarks = async (userId) => {
   await throwIfNoUserExists(userId);
@@ -8,7 +9,7 @@ const getBookmarks = async (userId) => {
     return bookmarks.map((bookmarkObject) => bookmarkObject.title);
   } catch (error) {
     throw {
-      status: 500,
+      status: StatusCode.SERVER_ERROR,
       message: error.message,
     };
   }
@@ -23,7 +24,7 @@ const addBookmark = async (userId, title) => {
   } catch (error) {
     if (error.name === "ValidationError") {
       throw {
-        status: 409,
+        status: StatusCode.CONFLICT,
         errors: Object.entries(error.errors).map(([fieldName, error]) => ({
           fieldName: fieldName,
           message: error.message,
@@ -32,7 +33,7 @@ const addBookmark = async (userId, title) => {
       };
     } else {
       throw {
-        status: 500,
+        status: StatusCode.SERVER_ERROR,
         message: error.message,
       };
     }
@@ -49,17 +50,17 @@ const deleteBookmarkByTitle = async (userId, title) => {
     });
     if (!deletionResult) {
       throw {
-        status: 404,
+        status: StatusCode.NOT_FOUND,
         message: `Bookmark with title \"${title}\" not found`,
       };
     }
   } catch (error) {
-    if (error.status == 404) {
+    if (error.status == StatusCode.NOT_FOUND) {
       throw error;
     }
     
     throw {
-      status: 500,
+      status: StatusCode.SERVER_ERROR,
       message: error.message,
     };
   }
@@ -70,8 +71,8 @@ async function throwIfNoUserExists(userId) {
     await userHandler.getUserById(userId);
   } catch (error) {
     throw {
-      status: 404,
-      message: `No user with id \"${userId}\"`,
+      status: StatusCode.NOT_FOUND,
+      message: `User with id \"${userId}\" not found`,
     };
   }
 }

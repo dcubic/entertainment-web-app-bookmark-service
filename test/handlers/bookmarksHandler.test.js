@@ -1,8 +1,9 @@
 const mongoose = require("mongoose");
 
-const userHandler = require("../handlers/userHandler");
-const bookmarksHandler = require("../handlers/bookmarksHandler");
-const dbConnector = require("../database/database");
+const userHandler = require("../../handlers/userHandler");
+const bookmarksHandler = require("../../handlers/bookmarksHandler");
+const dbConnector = require("../../database/database");
+const StatusCode = require('../../utils/statuscode');
 
 beforeAll(async () => await dbConnector.connect());
 
@@ -19,8 +20,8 @@ describe("getBookmarks", () => {
       expect(true).toBe(false);
     } catch (error) {
       expect(error).toEqual({
-        status: 404,
-        message: `No user with id \"${nonexistentUserId.toString()}\"`,
+        status: StatusCode.NOT_FOUND,
+        message: `User with id \"${nonexistentUserId.toString()}\" not found`,
       });
     }
   });
@@ -67,8 +68,8 @@ describe("addBookmark", () => {
       expect(true).toBe(false); // Shouldn't make it here
     } catch (error) {
       const expectedError = {
-        status: 404,
-        message: `No user with id \"${nonexistentUserId}\"`,
+        status: StatusCode.NOT_FOUND,
+        message: `User with id \"${nonexistentUserId}\" not found`,
       };
       expect(error).toEqual(expectedError);
     }
@@ -89,7 +90,7 @@ describe("addBookmark", () => {
       const sortErrors = (a, b) => a.fieldName.localeCompare(b.fieldName);
 
       const expectedError = {
-        status: 409,
+        status: StatusCode.CONFLICT,
         errors: [
           {
             fieldName: "title",
@@ -127,8 +128,8 @@ describe("deleteBookmarkByTitle", () => {
       expect(true).toBe(false);
     } catch (error) {
       expect(error).toEqual({
-        status: 404,
-        message: `No user with id \"${nonexistentUserId.toString()}\"`,
+        status: StatusCode.NOT_FOUND,
+        message: `User with id \"${nonexistentUserId.toString()}\" not found`,
       });
     }
   });
@@ -140,7 +141,7 @@ describe("deleteBookmarkByTitle", () => {
       expect(true).toBe(false);
     } catch (error) {
       expect(error).toEqual({
-        status: 404,
+        status: StatusCode.NOT_FOUND,
         message: `Bookmark with title \"FAKE_TITLE\" not found`,
       });
     }

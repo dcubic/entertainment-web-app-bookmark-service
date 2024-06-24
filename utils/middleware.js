@@ -13,5 +13,5 @@ const checkRequiredParameters = (parameters) => (req, res, next) => {
 };
 
 module.exports = {
-    checkRequiredParameters: checkRequiredParameters
-}
+  checkRequiredParameters: checkRequiredParameters,
+};

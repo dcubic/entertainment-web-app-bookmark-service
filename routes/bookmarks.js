@@ -1,25 +1,30 @@
 const express = require("express");
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 const { checkRequiredParameters } = require("../utils/middleware");
 const bookmarksHandler = require("../handlers/bookmarksHandler");
+const StatusCode = require("../utils/statuscode");
 
-router.get("/", async (req, res) => {
-  const userId = req.params.userId;
-
-  try {
-    // const bookmarks = await bookmarksHandler.getBookmarks(userId);
-  } catch(error) {
-    
-  }
-
+router.get("/", (req, res) => {
+  console.log("api parameters: ", req.params)
+  bookmarksHandler
+    .getBookmarks(req.params.userId)
+    .then((bookmarks) => {
+      res.status(StatusCode.OK).json({
+        bookmarks: bookmarks,
+      });
+    })
+    .catch((error) => {
+      res.status(error.status).json({
+        message: error.message,
+      });
+    });
 });
 
 router.post(
-  "/:bookmarkId",
-  checkRequiredParameters(["bookmarkId"]),
+  "/"),
   (req, res) => {
-    const { userId, bookmarkId } = req.params;
+    const { userId, title } = req.params;
   }
 );
 
