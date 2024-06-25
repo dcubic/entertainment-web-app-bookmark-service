@@ -1,9 +1,9 @@
 const mongoose = require("mongoose");
 
-const userHandler = require("../../handlers/userHandler");
-const bookmarksHandler = require("../../handlers/bookmarksHandler");
-const dbConnector = require("../../database/database");
-const StatusCode = require('../../utils/statuscode');
+const userHandler = require("../../src/handlers/userHandler");
+const bookmarksHandler = require("../../src/handlers/bookmarksHandler");
+const dbConnector = require("../../src/database/database");
+const StatusCode = require('../../src/utils/statuscode');
 
 beforeAll(async () => await dbConnector.connect());
 

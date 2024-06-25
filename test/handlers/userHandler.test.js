@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
-const userHandler = require("../../handlers/userHandler");
-const dbConnector = require("../../database/database");
-const StatusCode = require('../../utils/statuscode');
+const userHandler = require("../../src/handlers/userHandler");
+const dbConnector = require("../../src/database/database");
+const StatusCode = require('../../src/utils/statuscode');
 
 beforeAll(async () => await dbConnector.connect());
 

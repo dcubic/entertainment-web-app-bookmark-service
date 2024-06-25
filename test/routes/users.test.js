@@ -1,8 +1,9 @@
-const dbConnector = require("../../database/database");
 const request = require("supertest");
-const app = require("../../app/app");
-const StatusCode = require("../../utils/statuscode");
-const userHandler = require("../../handlers/userHandler");
+
+const dbConnector = require("../../src/database/database");
+const app = require("../../src/app/app");
+const StatusCode = require("../../src/utils/statuscode");
+const userHandler = require("../../src/handlers/userHandler");
 
 beforeAll(async () => await dbConnector.connect());
 
@@ -95,16 +96,16 @@ describe("createUser", () => {
       .post("/users/")
       .send({ email: email, password: "gandalf" });
 
-    expect(response.status).toBe(StatusCode.OK)
+    expect(response.status).toBe(StatusCode.OK);
 
     const id = response.body.id;
     expect(response.body.email).toBe(email);
 
     const createdUser = await userHandler.getUserById(id);
     expect(createdUser).toEqual({
-        id: id,
-        email: email
-    })
+      id: id,
+      email: email,
+    });
   });
 });
 
