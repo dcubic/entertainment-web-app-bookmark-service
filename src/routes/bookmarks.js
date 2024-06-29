@@ -4,7 +4,7 @@ const router = express.Router({ mergeParams: true });
 
 const { checkRequiredParameters } = require("../utils/middleware");
 const bookmarksHandler = require("../handlers/bookmarksHandler");
-const StatusCode = require("../utils/statuscode");
+const StatusCode = require("../utils/StatusCode");
 
 router.get("/", (req, res) => {
   bookmarksHandler

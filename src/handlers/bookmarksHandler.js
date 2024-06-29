@@ -1,6 +1,6 @@
 const userHandler = require("../handlers/userHandler");
-const BookmarkModel = require("../models/bookmark");
-const StatusCode = require('../utils/statuscode');
+const BookmarkModel = require("../database/bookmarks/bookmark");
+const StatusCode = require('../utils/StatusCode');
 
 const getBookmarks = async (userId) => {
   await throwIfNoUserExists(userId);

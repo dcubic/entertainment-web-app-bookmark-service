@@ -12,9 +12,7 @@ class DatabaseConnecter {
       const uri = this.mongoServer.getUri();
       await mongoose.connect(uri);
     } else {
-      const uri =
-        process.env.MONGO_URI ||
-        "mongodb+srv://dcubic:PVOpLHciOg9OZGVr@freecluster.h1hyyzp.mongodb.net/users?retryWrites=true";
+      const uri = process.env.MONGO_URI || "MATTERS_NOT";
       await mongoose.connect(uri);
     }
   }
@@ -29,7 +27,9 @@ class DatabaseConnecter {
   async closeDatabase() {
     await mongoose.connection.dropDatabase();
     await mongoose.connection.close();
-    if (this.mongoServer) { this.mongoServer.stop(); }
+    if (this.mongoServer) {
+      this.mongoServer.stop();
+    }
   }
 
   async clearDatabase() {
