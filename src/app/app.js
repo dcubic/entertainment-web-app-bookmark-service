@@ -1,9 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
+const dotenv = require('dotenv');
 
-const usersRouter = require("../routes/users");
-const bookmarksRouter = require("../routes/bookmarks");
-const { checkRequiredParameters } = require("../utils/middleware");
+const BookmarksRouter = require("../routers/BookmarksRouter");
+const {
+  checkRequiredParameters,
+  handleErrors,
+} = require("../utils/middleware");
 
 if (process.env.NODE_ENV !== "prod") {
   dotenv.config();
@@ -17,12 +20,15 @@ for (const requiredVariable of requiredEnvironmentVariables) {
   }
 }
 
+const bookmarksRouter = new BookmarksRouter();
+
 const app = express();
 app.use(bodyParser.json());
 app.use(
   "/users/:userId/bookmarks",
   checkRequiredParameters(["userId"]),
-  bookmarksRouter
+  bookmarksRouter.getRoutes(),
+  handleErrors
 );
 
 module.exports = app;

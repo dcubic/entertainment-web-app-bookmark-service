@@ -28,6 +28,9 @@ class AuthenticationError extends ServerError {
   }
 }
 
+/**
+ * Might confuse someone with this
+ */
 class AuthorizationError extends ServerError {
   constructor(
     statusCode = StatusCode.FORBIDDEN,
@@ -36,15 +39,12 @@ class AuthorizationError extends ServerError {
     super(statusCode, message);
 
     this.name = "AuthenticationError";
-    Object.setPrototypeOf(this, AuthenticationError.prototype);
+    Object.setPrototypeOf(this, AuthorizationError.prototype);
   }
 }
 
 class BookmarkNotFoundError extends ServerError {
-  constructor(
-    statusCode = StatusCode.NOT_FOUND,
-    message
-  ) {
+  constructor(statusCode = StatusCode.NOT_FOUND, message) {
     super(statusCode, message);
 
     this.name = "BookmarkNotFoundError";

@@ -1,27 +1,125 @@
-// const request = require("supertest");
+const request = require("supertest");
+const jwt = require("jsonwebtoken");
 // const mongoose = require("mongoose");
-// const app = require('../../src/app/app');
+const {
+  Types: { ObjectId },
+} = require("mongoose");
+const app = require("../../src/app/app");
 // const dbConnector = require("../../src/database/database");
-// const StatusCode = require("../../src/utils/statuscode");
-// const userHandler = require("../../src/handlers/userHandler");
-// const bookmarksHandler = require("../../src/handlers/bookmarksHandler");
+const StatusCode = require("../../src/utils/StatusCode");
+const { JWT_SECRET } = require("../../src/utils/testingconstants");
+// const bookmarksHandler = require("../../src/handlers/BookmarksHandler");
 
-// beforeAll(async () => await dbConnector.connect());
+beforeAll(async () => await dbConnector.connect());
 
-// afterEach(async () => await dbConnector.clearDatabase());
+afterEach(async () => await dbConnector.clearDatabase());
 
-// afterAll(async () => await dbConnector.closeDatabase());
+afterAll(async () => await dbConnector.closeDatabase());
+
+describe("JWT Authentication", () => {
+  it("failure case - JWT is missing", async () => {
+    const response = await request(app).get("/users/:userId/bookmarks");
+
+    expect(response.status).toBe(StatusCode.UNAUTHORIZED);
+    expect(response.body).toEqual({ message: "" });
+  });
+
+  it("failure case - not a valid JWT", async () => {
+    const response = await request(app)
+      .get("/users/:userId/bookmarks")
+      .set("Authorization", `Bearer ASDSADASD`);
+
+    expect(response.status).toBe(StatusCode.UNAUTHORIZED);
+    expect(response.body).toEqual({ message: "" });
+  });
+
+  it("failure case - JWT is expired", async () => {
+    const userId = ObjectId().toString();
+    const email = "pizza@lunch.com";
+
+    const token = jwt.sign({ subject: userId, email: email }, JWT_SECRET, {
+      expiresIn: Math.floor(Date.now() / 1000) - 3600,
+    });
+
+    const response = await request(app)
+      .get(`/users/${userId}/bookmarks`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(StatusCode.UNAUTHORIZED);
+    expect(response.body).toEqual({ message: "" });
+  });
+
+  it("failure case - JWT has an invalid signature (secret is different)", async () => {
+    const differentSecret = "SECRETY_WECRETY";
+    const userId = ObjectId().toString();
+    const email = "pizza@lunch.com";
+
+    const token = jwt.sign({ subject: userId, email: email }, differentSecret, {
+      expiresIn: "1h",
+    });
+
+    const response = await request(app)
+      .get(`/users/${userId}/bookmarks`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(StatusCode.UNAUTHORIZED);
+    expect(response.body).toEqual({ message: "" });
+  });
+
+  it("failure case - JWT is for different user", async () => {
+    const userId = ObjectId().toString();
+    const alternateUserId = ObjectId().toString();
+    const email = "pizza@lunch.com";
+
+    const token = jwt.sign(
+      { subject: alternateUserId, email: email },
+      JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    const response = await request(app)
+      .get(`/users/${userId}/bookmarks`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(response.status).toBe(StatusCode.UNAUTHORIZED);
+    expect(response.body).toEqual({ message: "" });
+  });
+
+  it("failure case - JWT has been tampered with", async () => {
+    const userId = ObjectId().toString();
+    const email = "pizza@lunch.com";
+
+    const validToken = jwt.sign(
+      { subject: userId, email: email },
+      differentSecret,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    const [header, payload, signature] = validToken.split(".");
+    const decodedPayload = JSON.parse(
+      Buffer.from(payload, "Base64").toString()
+    );
+    decodedPayload.email = "xXx_eL337_H4CK3R_xXx";
+
+    const tamperedPayload = Buffer.from(
+      JSON.stringify(decodedPayload)
+    ).toString("base64");
+    const tamperedToken = `${header}.${tamperedPayload}.${signature}`;
+
+    const response = await request(app)
+      .get(`/users/${userId}/bookmarks`)
+      .set("Authorization", `Bearer ${tamperedToken}`);
+
+    expect(response.status).toBe(StatusCode.UNAUTHORIZED);
+    expect(response.body).toEqual({ message: "" });
+  });
+});
 
 // describe("getBookmarks", () => {
-//   it("failure case - no such user exists", () => {
-//     return request(app)
-//       .get(`/users/FAKE/bookmarks`)
-//       .then((response) => {
-//         expect(response.status).toBe(StatusCode.NOT_FOUND);
-//         expect(response.body.message).toBe('User with id "FAKE" not found');
-//       });
-//   });
-
 //   it("success case - 0 bookmarks retrieved", () => {
 //     return userHandler
 //       .createUser("email@email.com", "password")

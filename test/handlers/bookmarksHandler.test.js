@@ -1,165 +1,125 @@
-// const mongoose = require("mongoose");
+const BookmarkModel = require("../../src/database/bookmarks/bookmark");
+const BookmarksDatabase = require("../../src/database/bookmarks/BookmarksDatabase");
+const dbConnector = require("../../src/database/DatabaseConnector");
+const BookmarksHandler = require("../../src/handlers/BookmarksHandler");
+const {
+  ConflictingResourceError,
+  BookmarkNotFoundError,
+} = require("../../src/utils/errors");
 
-// const userHandler = require("../../src/handlers/userHandler");
-// const bookmarksHandler = require("../../src/handlers/bookmarksHandler");
-// const dbConnector = require("../../src/database/database");
-// const StatusCode = require('../../src/utils/StatusCode');
+const bookmarksDatabase = new BookmarksDatabase();
+const bookmarksHandler = new BookmarksHandler();
 
-// beforeAll(async () => await dbConnector.connect());
+beforeAll(async () => await dbConnector.connect());
 
-// afterEach(async () => await dbConnector.clearDatabase());
+afterEach(async () => await dbConnector.clearDatabase());
 
-// afterAll(async () => await dbConnector.closeDatabase());
+afterAll(async () => await dbConnector.closeDatabase());
 
-// describe("getBookmarks", () => {
-//   it("error case - no such user exists", async () => {
-//     const nonexistentUserId = new mongoose.Types.ObjectId();
+describe("getBookmarks", () => {
+  it("success case - no bookmarks exist for specified user", async () => {
+    const userId = "Bilbo";
+    const bookmarks = await bookmarksHandler.getBookmarks(userId);
 
-//     try {
-//       await bookmarksHandler.getBookmarks(nonexistentUserId.toString());
-//       expect(true).toBe(false);
-//     } catch (error) {
-//       expect(error).toEqual({
-//         status: StatusCode.NOT_FOUND,
-//         message: `User with id \"${nonexistentUserId.toString()}\" not found`,
-//       });
-//     }
-//   });
+    expect(bookmarks).toHaveLength(0);
+  });
 
-//   it("success case - no bookmarks", async () => {
-//     const user = await userHandler.createUser("email@pizza.com", "password123");
-//     const bookmarks = await bookmarksHandler.getBookmarks(user.id);
-//     expect(bookmarks).toHaveLength(0);
-//   });
+  it("success case - several bookmarks exist for the specified user", async () => {
+    const userId = "Windex";
+    const titles = [
+      "TITLE1",
+      "PHONE",
+      "NAIL_CLIPPERS",
+      "MECHANICAL PENCIL",
+      "LAPTOP",
+      "LIGHT",
+      "SUNLAMP",
+      "ERASER",
+    ];
+    for (const title of titles) {
+      await bookmarksDatabase.createBookmark(userId, title);
+    }
 
-//   it("success case - two bookmarks", async () => {
-//     const user = await userHandler.createUser("email@pizza.com", "password123");
-//     const expectedBookmarks = ["abcdef", "ghijkl"];
-//     for (const title of expectedBookmarks) {
-//       await bookmarksHandler.addBookmark(user.id, title);
-//     }
+    const bookmarks = await bookmarksHandler.getBookmarks(userId);
+    expect(bookmarks.sort()).toStrictEqual(titles.sort());
+  });
+});
 
-//     const bookmarks = await bookmarksHandler.getBookmarks(user.id);
-//     expect(bookmarks).toEqual(expectedBookmarks);
-//   });
-// });
+describe("createBookmark", () => {
+  it("error case - a bookmark with the same title for the specified user already exists", async () => {
+    const userId = "USER123";
+    const title = "TITLE";
 
-// describe("addBookmark", () => {
-//   it("success case", async () => {
-//     const user = await userHandler.createUser("pizza@hotdog.com", "password");
-//     const title = "Potato";
+    await bookmarksDatabase.createBookmark(userId, title);
 
-//     try {
-//       await bookmarksHandler.addBookmark(user.id, title);
-//       const bookmarks = await bookmarksHandler.getBookmarks(user.id);
-//       const expectedBookmarks = [title];
-//       expect(bookmarks).toEqual(expectedBookmarks);
-//     } catch (error) {
-//       expect(true).toBe(false);
-//     }
-//   });
+    await expect(bookmarksHandler.addBookmark(userId, title)).rejects.toThrow(
+      new ConflictingResourceError("Bookmark already exists")
+    );
+  });
 
-//   it("error case - no such userId exists", async () => {
-//     const nonexistentUserId = new mongoose.Types.ObjectId();
-//     const title = "Pizza (2016)";
+  it("success case", async () => {
+    const userId = "USER123";
+    const title = "TITLE";
 
-//     try {
-//       await bookmarksHandler.addBookmark(nonexistentUserId, title);
-//       expect(true).toBe(false); // Shouldn't make it here
-//     } catch (error) {
-//       const expectedError = {
-//         status: StatusCode.NOT_FOUND,
-//         message: `User with id \"${nonexistentUserId}\" not found`,
-//       };
-//       expect(error).toEqual(expectedError);
-//     }
-//   });
+    await bookmarksHandler.addBookmark(userId, title);
+    const bookmarks = await bookmarksDatabase.getBookmarks(userId);
+    expect(bookmarks).toStrictEqual([title]);
+  });
+});
 
-//   it("error case - a bookmark with the same userId and title already exists", async () => {
-//     const user = await userHandler.createUser(
-//       "pizzaJims@hotdog.com",
-//       "XxX_D3XL355_XxX"
-//     );
-//     const title = "Flappy Wappy";
+describe("deleteBookmark", () => {
+  it("error case - no existing bookmark matches userId", async () => {
+    const otherUserId = "ESKIMO";
+    const sharedBookmarkTitle = "PIZZA";
+    await bookmarksHandler.addBookmark(otherUserId, sharedBookmarkTitle);
 
-//     await bookmarksHandler.addBookmark(user.id, title);
-//     try {
-//       await bookmarksHandler.addBookmark(user.id, title);
-//       expect(true).toBe(false); // Shouldn't reach this
-//     } catch (error) {
-//       const sortErrors = (a, b) => a.fieldName.localeCompare(b.fieldName);
+    const targetUserId = "ADVIL";
+    await expect(
+      bookmarksHandler.deleteBookmark(targetUserId, sharedBookmarkTitle)
+    ).rejects.toThrow(
+      new BookmarkNotFoundError(
+        `Bookmark with title \"${sharedBookmarkTitle}\" not found`
+      )
+    );
 
-//       const expectedError = {
-//         status: StatusCode.CONFLICT,
-//         errors: [
-//           {
-//             fieldName: "title",
-//             message:
-//               "Error, expected `title` to be unique. Value: `Flappy Wappy`",
-//             kind: "unique",
-//           },
-//           {
-//             fieldName: "userId",
-//             message:
-//               "Error, expected `userId` to be unique. Value: `" +
-//               `${user.id}` +
-//               "`",
-//             kind: "unique",
-//           },
-//         ],
-//       };
+    const bookmarks = await bookmarksDatabase.getBookmarks(otherUserId);
+    expect(bookmarks).toStrictEqual([sharedBookmarkTitle]);
+  });
 
-//       error.errors.sort(sortErrors);
-//       expectedError.errors.sort;
+  it("error case - no existing bookmark matches title", async () => {
+    const sharedUserId = "CLEAR PLUS";
+    const otherBookmarkTitle = "ARASFFEWFA";
 
-//       expect(error).toEqual(expectedError);
-//     }
-//   });
-// });
+    await bookmarksDatabase.createBookmark(sharedUserId, otherBookmarkTitle);
 
-// describe("deleteBookmarkByTitle", () => {
-//   it("error case - no such user exists", async () => {
-//     const nonexistentUserId = new mongoose.Types.ObjectId();
-//     try {
-//       await bookmarksHandler.deleteBookmarkByTitle(
-//         nonexistentUserId.toString(),
-//         "FAKE_TITLE"
-//       );
-//       expect(true).toBe(false);
-//     } catch (error) {
-//       expect(error).toEqual({
-//         status: StatusCode.NOT_FOUND,
-//         message: `User with id \"${nonexistentUserId.toString()}\" not found`,
-//       });
-//     }
-//   });
+    const targetBookmarkTitle = "SFAS";
+    await expect(
+      bookmarksHandler.deleteBookmark(sharedUserId, targetBookmarkTitle)
+    ).rejects.toThrow(
+      new BookmarkNotFoundError(
+        `Bookmark with title \"${targetBookmarkTitle}\" not found`
+      )
+    );
 
-//   it("error case - no such bookmark exists", async () => {
-//     const user = await userHandler.createUser("email@email.com", "pass");
-//     try {
-//       await bookmarksHandler.deleteBookmarkByTitle(user.id, "FAKE_TITLE");
-//       expect(true).toBe(false);
-//     } catch (error) {
-//       expect(error).toEqual({
-//         status: StatusCode.NOT_FOUND,
-//         message: `Bookmark with title \"FAKE_TITLE\" not found`,
-//       });
-//     }
-//   });
+    const bookmarks = await bookmarksDatabase.getBookmarks(sharedUserId);
+    expect(bookmarks).toStrictEqual([otherBookmarkTitle]);
+  });
 
-//   it("success case - bookmark successfully deleted", async () => {
-//     const user = await userHandler.createUser("email@email.com", "pass");
-//     const title = "BookmarkTitle";
-//     await bookmarksHandler.addBookmark(user.id, title);
+  it("success case", async () => {
+    const user1Id = "PIZZA";
+    const user2Id = "POP";
 
-//     const expectedBookmarks = [title];
-//     const bookmarksBeforeDeletion = await bookmarksHandler.getBookmarks(
-//       user.id
-//     );
-//     expect(bookmarksBeforeDeletion).toEqual(expectedBookmarks);
+    const title = "CONSUME";
 
-//     await bookmarksHandler.deleteBookmarkByTitle(user.id, title);
-//     const bookmarksPostDeletion = await bookmarksHandler.getBookmarks(user.id);
-//     expect(bookmarksPostDeletion).toHaveLength(0);
-//   });
-// });
+    await bookmarksDatabase.createBookmark(user1Id, title);
+    await bookmarksDatabase.createBookmark(user2Id, title);
+
+    await bookmarksHandler.deleteBookmark(user1Id, title);
+
+    const bookmarksUser1 = await bookmarksHandler.getBookmarks(user1Id);
+    const bookmarksUser2 = await bookmarksHandler.getBookmarks(user2Id);
+
+    expect(bookmarksUser1).toStrictEqual([]);
+    expect(bookmarksUser2).toStrictEqual([title]);
+  });
+});
