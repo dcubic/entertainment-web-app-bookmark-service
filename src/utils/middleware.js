@@ -1,3 +1,5 @@
+const jwt = require("jsonwebtoken");
+const { validationResult } = require('express-validator')
 const { InvalidParameterError } = require("./errors");
 const { JWT_SECRET } = require("../utils/testingconstants");
 const { AuthenticationError, AuthorizationError } = require("../utils/errors");
@@ -5,7 +7,7 @@ const { AuthenticationError, AuthorizationError } = require("../utils/errors");
 const checkRequiredParameters = (parameters) => (request, response, next) => {
   try {
     const missingParameters = parameters.filter(
-      (parameter) => !req.params[parameter]
+      (parameter) => !request.params[parameter]
     );
     if (missingParameters.length > 0) {
       throw InvalidParameterError(
@@ -38,7 +40,7 @@ const checkJWTValidity = (request, response, next) => {
         if (error) {
           throw new AuthenticationError();
         } else {
-          if (request.params.userId !== decodedToken.subject) {
+          if (String(request.params.userId) !== String(decodedToken.subject)) {
             throw new AuthorizationError();
           }
           next();
@@ -75,4 +77,5 @@ module.exports = {
   checkRequiredParameters,
   handleValidationErrors,
   handleErrors,
+  checkJWTValidity,
 };

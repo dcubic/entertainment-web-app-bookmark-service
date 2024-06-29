@@ -1,14 +1,16 @@
 const request = require("supertest");
 const jwt = require("jsonwebtoken");
-// const mongoose = require("mongoose");
 const {
   Types: { ObjectId },
 } = require("mongoose");
 const app = require("../../src/app/app");
-// const dbConnector = require("../../src/database/database");
+const dbConnector = require("../../src/database/DatabaseConnector");
 const StatusCode = require("../../src/utils/StatusCode");
 const { JWT_SECRET } = require("../../src/utils/testingconstants");
-// const bookmarksHandler = require("../../src/handlers/BookmarksHandler");
+const BookmarksDatabase = require("../../src/database/bookmarks/BookmarksDatabase");
+const BookmarkModel = require("../../src/database/bookmarks/bookmark");
+
+const bookmarksDatabase = new BookmarksDatabase();
 
 beforeAll(async () => await dbConnector.connect());
 
@@ -16,12 +18,17 @@ afterEach(async () => await dbConnector.clearDatabase());
 
 afterAll(async () => await dbConnector.closeDatabase());
 
+const randomObjectId = () => {
+  const objectId = new ObjectId();
+  return objectId.toString();
+};
+
 describe("JWT Authentication", () => {
   it("failure case - JWT is missing", async () => {
     const response = await request(app).get("/users/:userId/bookmarks");
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
-    expect(response.body).toEqual({ message: "" });
+    expect(response.body).toEqual({ message: "Invalid Credentials" });
   });
 
   it("failure case - not a valid JWT", async () => {
@@ -30,15 +37,15 @@ describe("JWT Authentication", () => {
       .set("Authorization", `Bearer ASDSADASD`);
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
-    expect(response.body).toEqual({ message: "" });
+    expect(response.body).toEqual({ message: "Invalid Credentials" });
   });
 
   it("failure case - JWT is expired", async () => {
-    const userId = ObjectId().toString();
+    const userId = randomObjectId();
     const email = "pizza@lunch.com";
 
     const token = jwt.sign({ subject: userId, email: email }, JWT_SECRET, {
-      expiresIn: Math.floor(Date.now() / 1000) - 3600,
+      expiresIn: "-1h",
     });
 
     const response = await request(app)
@@ -46,12 +53,12 @@ describe("JWT Authentication", () => {
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
-    expect(response.body).toEqual({ message: "" });
+    expect(response.body).toEqual({ message: "Invalid Credentials" });
   });
 
   it("failure case - JWT has an invalid signature (secret is different)", async () => {
     const differentSecret = "SECRETY_WECRETY";
-    const userId = ObjectId().toString();
+    const userId = randomObjectId();
     const email = "pizza@lunch.com";
 
     const token = jwt.sign({ subject: userId, email: email }, differentSecret, {
@@ -63,41 +70,16 @@ describe("JWT Authentication", () => {
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
-    expect(response.body).toEqual({ message: "" });
-  });
-
-  it("failure case - JWT is for different user", async () => {
-    const userId = ObjectId().toString();
-    const alternateUserId = ObjectId().toString();
-    const email = "pizza@lunch.com";
-
-    const token = jwt.sign(
-      { subject: alternateUserId, email: email },
-      JWT_SECRET,
-      {
-        expiresIn: "1h",
-      }
-    );
-
-    const response = await request(app)
-      .get(`/users/${userId}/bookmarks`)
-      .set("Authorization", `Bearer ${token}`);
-
-    expect(response.status).toBe(StatusCode.UNAUTHORIZED);
-    expect(response.body).toEqual({ message: "" });
+    expect(response.body).toEqual({ message: "Invalid Credentials" });
   });
 
   it("failure case - JWT has been tampered with", async () => {
-    const userId = ObjectId().toString();
+    const userId = randomObjectId();
     const email = "pizza@lunch.com";
 
-    const validToken = jwt.sign(
-      { subject: userId, email: email },
-      differentSecret,
-      {
-        expiresIn: "1h",
-      }
-    );
+    const validToken = jwt.sign({ subject: userId, email: email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
     const [header, payload, signature] = validToken.split(".");
     const decodedPayload = JSON.parse(
@@ -115,165 +97,147 @@ describe("JWT Authentication", () => {
       .set("Authorization", `Bearer ${tamperedToken}`);
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
-    expect(response.body).toEqual({ message: "" });
+    expect(response.body).toEqual({ message: "Invalid Credentials" });
   });
 });
 
-// describe("getBookmarks", () => {
-//   it("success case - 0 bookmarks retrieved", () => {
-//     return userHandler
-//       .createUser("email@email.com", "password")
-//       .then((createdUser) => {
-//         return request(app)
-//           .get(`/users/${createdUser.id}/bookmarks`)
-//           .then((response) => {
-//             expect(response.status).toBe(StatusCode.OK);
-//             expect(response.body.bookmarks).toHaveLength(0);
-//           });
-//       });
-//   });
+describe("JWT Authorization", () => {
+  it("error case - user is unauthorized to perform this operation", async () => {
+    const callingUserId = randomObjectId();
+    const bookmarkOwnerUserId = randomObjectId();
+    const email = "chagrin@rage.com";
 
-//   it("success case - multiple bookmarks retrieved", async () => {
-//     const user = await userHandler.createUser("email@pizza.com", "password");
-//     const bookmarks = [
-//       "ABC",
-//       "DEF",
-//       "GHI",
-//       "JKL",
-//       "MNO",
-//       "PQR",
-//       "STU",
-//       "VXW",
-//       "YZ",
-//     ];
-//     for (const bookmark of bookmarks) {
-//       await bookmarksHandler.addBookmark(user.id, bookmark);
-//     }
+    const callingUserToken = jwt.sign(
+      { subject: callingUserId, email: email },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
-//     const response = await request(app).get(`/users/${user.id}/bookmarks`);
+    const response = await request(app)
+      .get(`/users/${bookmarkOwnerUserId}/bookmarks`)
+      .set("Authorization", `Bearer ${callingUserToken}`);
 
-//     expect(response.status).toBe(StatusCode.OK);
-//     expect(response.body.bookmarks).toEqual(bookmarks);
-//   });
-// });
+    expect(response.status).toBe(StatusCode.FORBIDDEN);
+    expect(response.body).toEqual({
+      message: "Not Authorized to perform this operation",
+    });
+  });
+});
 
-// describe("createBookmark", () => {
-//   it("error case - no user matches userId", async () => {
-//     const randomId = new mongoose.Types.ObjectId();
+describe("getBookmarks", () => {
+  it("success case - user has no bookmarks", async () => {
+    const userId = randomObjectId();
+    const email = "pizza@hotdog.com";
 
-//     const response = await request(app)
-//       .post(`/users/${randomId}/bookmarks`)
-//       .send({ title: "RANDOM_TITLE" });
+    const token = jwt.sign({ subject: userId, email: email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
-//     expect(response.status).toBe(StatusCode.NOT_FOUND);
-//     expect(response.body).toEqual({
-//       message: `User with id \"${randomId}\" not found`,
-//     });
-//   });
+    const response = await request(app)
+      .get(`/users/${userId}/bookmarks`)
+      .set("Authorization", `Bearer ${token}`);
 
-//   it("error case - missing bookmark parameter", async () => {
-//     const userId = await userHandler.createUser(
-//       "validemail@email.com",
-//       "password"
-//     );
-//     const response = await request(app)
-//       .post(`/users/${userId}/bookmarks`)
-//       .send({ otherParameter: "asdf" });
-//     expect(response.status).toBe(StatusCode.BAD_REQUEST);
-//     expect(response.body).toEqual({
-//       errors: [
-//         {
-//           location: "body",
-//           msg: "Bookmark title cannot be empty",
-//           path: "title",
-//           type: "field",
-//         },
-//       ],
-//     });
-//   });
+    expect(response.status).toBe(StatusCode.OK);
+    expect(response.body).toEqual([]);
+  });
 
-//   it("error case - empty bookmark title", async () => {
-//     const userId = await userHandler.createUser(
-//       "validemail@email.com",
-//       "password"
-//     );
-//     const response = await request(app)
-//       .post(`/users/${userId}/bookmarks`)
-//       .send({ bookmark: "" });
-//     expect(response.status).toBe(StatusCode.BAD_REQUEST);
-//     expect(response.body).toEqual({
-//       errors: [
-//         {
-//           location: "body",
-//           msg: "Bookmark title cannot be empty",
-//           path: "title",
-//           type: "field",
-//         },
-//       ],
-//     });
-//   });
+  it("success case - user has multiple bookmarks", async () => {
+    const userId = randomObjectId();
+    const email = "pizza@hotdog.com";
 
-//   it("success case", async () => {
-//     const user = await userHandler.createUser(
-//       "validEmail@email.com",
-//       "password123"
-//     );
-//     const bookmarkTitle = "BOOKMARK";
-//     const response = await request(app)
-//       .post(`/users/${user.id}/bookmarks`)
-//       .send({ title: bookmarkTitle });
+    const token = jwt.sign({ subject: userId, email: email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
-//     expect(response.status).toBe(StatusCode.OK);
-//   });
+    const bookmarkTitles = ["SNAP", "CRACKLE", "POP"];
 
-//   it("error case - a bookmark with the given title already exists for the user", async () => {});
-// });
+    for (const title of bookmarkTitles) {
+      await bookmarksDatabase.createBookmark(userId, title);
+    }
 
-// describe("deleteBookmarkById", () => {
-//   it("error case - no such user exists", async () => {
-//     const randomId = new mongoose.Types.ObjectId();
-//     const otherUser = await userHandler.createUser(
-//       "email@email.com",
-//       "password123"
-//     );
-//     const otherUserBookmark = "BOOKMARK";
-//     await bookmarksHandler.addBookmark(otherUser.id, otherUserBookmark);
+    const response = await request(app)
+      .get(`/users/${userId}/bookmarks`)
+      .set("Authorization", `Bearer ${token}`);
 
-//     const response = await request(app).delete(
-//       `/users/${randomId}/bookmarks/${otherUserBookmark}`
-//     );
+    expect(response.status).toBe(StatusCode.OK);
+    expect(response.body.sort()).toEqual(bookmarkTitles.sort());
+  });
+});
 
-//     expect(response.status).toBe(StatusCode.NOT_FOUND);
-//     expect(response.body).toEqual({
-//       message: `User with id \"${randomId}\" not found`,
-//     });
-//   });
+describe("addBookmark", () => {
+  it("error case - attempting to add a bookmark that already exists", async () => {
+    const title = "BOOKMARK-TITLE";
+    const userId = "PIZZA";
+    const email = "fat@dog.com";
 
-//   it("error case - no such bookmark exists", async () => {
-//     const user = await userHandler.createUser("email@email.com", "password123");
-//     const someBookmark = "SOME_BOOKMARK";
-//     await bookmarksHandler.addBookmark(user.id, someBookmark);
-//     const someOtherBookmark = "SOME_OTHER_BOOKMARK";
+    await bookmarksDatabase.createBookmark(userId, title);
 
-//     const response = await request(app).delete(
-//       `/users/${user.id}/bookmarks/${someOtherBookmark}`
-//     );
+    const token = jwt.sign({ subject: userId, email: email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
 
-//     expect(response.status).toBe(StatusCode.NOT_FOUND);
-//     expect(response.body).toEqual({
-//       message: `Bookmark with title \"${someOtherBookmark}\" not found`,
-//     });
-//   });
+    const response = await request(app)
+      .post(`/users/${userId}/bookmarks`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title });
 
-//   it("success case", async () => {
-//     const user = await userHandler.createUser("email@email.com", "password123");
-//     const bookmark = "SOME_BOOKMARK";
-//     await bookmarksHandler.addBookmark(user.id, bookmark);
+    expect(response.status).toBe(StatusCode.CONFLICT);
+    expect(response.body).toEqual({ message: "Bookmark already exists" });
+  });
 
-//     const response = await request(app).delete(
-//       `/users/${user.id}/bookmarks/${bookmark}`
-//     );
+  it("success case", async () => {
+    const title = "BOOKMARK-TITLE";
+    const userId = "PIZZA";
+    const email = "fat@dog.com";
 
-//     expect(response.status).toBe(StatusCode.OK);
-//   });
-// });
+    const token = jwt.sign({ subject: userId, email: email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    const response = await request(app)
+      .post(`/users/${userId}/bookmarks`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title });
+
+    expect(response.status).toBe(StatusCode.OK);
+  });
+});
+
+describe("removeBookmark", () => {
+  it("error case - attempting to remove a bookmark that doesnt exist", async () => {
+    const title = "BOOKMARK-TITLE";
+    const userId = "PIZZA";
+    const email = "fat@dog.com";
+
+    const token = jwt.sign({ subject: userId, email: email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    const response = await request(app)
+      .delete(`/users/${userId}/bookmarks/${title}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title });
+
+    expect(response.status).toBe(StatusCode.NOT_FOUND);
+    expect(response.body).toEqual({ message: `Bookmark with title \"${title}\" not found`})
+  });
+
+  it("success case", async () => {
+    const title = "BOOKMARK-TITLE";
+    const userId = "PIZZA";
+    const email = "fat@dog.com";
+
+    await bookmarksDatabase.createBookmark(userId, title);
+
+    const token = jwt.sign({ subject: userId, email: email }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    const response = await request(app)
+      .delete(`/users/${userId}/bookmarks/${title}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title });
+
+    expect(response.status).toBe(StatusCode.OK);
+  });
+});

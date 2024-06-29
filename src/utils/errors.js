@@ -44,7 +44,7 @@ class AuthorizationError extends ServerError {
 }
 
 class BookmarkNotFoundError extends ServerError {
-  constructor(statusCode = StatusCode.NOT_FOUND, message) {
+  constructor(message, statusCode = StatusCode.NOT_FOUND) {
     super(statusCode, message);
 
     this.name = "BookmarkNotFoundError";

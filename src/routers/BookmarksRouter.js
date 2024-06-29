@@ -1,6 +1,7 @@
 const express = require("express");
 const BookmarksHandler = require("../handlers/BookmarksHandler");
 const StatusCode = require("../utils/StatusCode");
+const { body } = require("express-validator");
 const {
   checkRequiredParameters,
   handleValidationErrors,
@@ -13,7 +14,7 @@ const asyncWrapper = (operation) => {
 };
 
 class BookmarksRouter {
-  #router = express.Router();
+  #router = express.Router({ mergeParams: true });
   #bookmarksHandler = new BookmarksHandler();
 
   constructor() {
@@ -21,16 +22,16 @@ class BookmarksRouter {
   }
 
   #initializeRoutes() {
-    this.router.get("/", asyncWrapper(this.getBookmarks.bind(this)));
-    this.router.post(
+    this.#router.get("/", asyncWrapper(this.getBookmarks.bind(this)));
+    this.#router.post(
       "/",
       [body("title").notEmpty().withMessage("Bookmark title cannot be empty")],
       handleValidationErrors,
       asyncWrapper(this.addBookmark.bind(this))
     );
-    this.router.delete(
-      checkRequiredParameters(["title"]),
+    this.#router.delete(
       "/:title",
+      checkRequiredParameters(["title"]),
       asyncWrapper(this.deleteBookmark.bind(this))
     );
   }
@@ -46,7 +47,7 @@ class BookmarksRouter {
     const { title } = request.body;
 
     await this.#bookmarksHandler.addBookmark(request.params.userId, title);
-    response.status(StatusCode.OK);
+    response.status(StatusCode.OK).send();
   }
 
   async deleteBookmark(request, response) {
@@ -54,7 +55,7 @@ class BookmarksRouter {
       request.params.userId,
       request.params.title
     );
-    response.status(StatusCode.OK);
+    response.status(StatusCode.OK).send();
   }
 
   getRouter() {
