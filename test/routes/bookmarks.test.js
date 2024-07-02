@@ -8,7 +8,6 @@ const dbConnector = require("../../src/database/DatabaseConnector");
 const StatusCode = require("../../src/utils/StatusCode");
 const { JWT_SECRET } = require("../../src/utils/testingconstants");
 const BookmarksDatabase = require("../../src/database/bookmarks/BookmarksDatabase");
-const BookmarkModel = require("../../src/database/bookmarks/bookmark");
 
 const bookmarksDatabase = new BookmarksDatabase();
 

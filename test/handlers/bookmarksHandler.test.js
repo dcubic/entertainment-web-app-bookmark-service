@@ -14,7 +14,7 @@ beforeAll(async () => await dbConnector.connect());
 
 afterEach(async () => await dbConnector.clearDatabase());
 
-afterAll(async () => await dbConnector.closeDatabase());
+afterAll(async () => await dbConnector.closeDatabase(), 30000);
 
 describe("getBookmarks", () => {
   it("success case - no bookmarks exist for specified user", async () => {

@@ -1,4 +1,4 @@
-const dbConnector = require('./src/database/database');
+const dbConnector = require('./src/database/DatabaseConnector')
 const app = require("./src/app/app");
 
 const port = process.env.PORT || 3000;
