@@ -28,7 +28,7 @@ const bookmarksRouter = new BookmarksRouter();
 const app = express();
 app.use(bodyParser.json());
 app.use(
-  "/users/:userId/bookmarks",
+  "/bookmark/users/:userId/bookmarks",
   checkRequiredParameters(["userId"]),
   checkJWTValidity,
   bookmarksRouter.getRouter(),

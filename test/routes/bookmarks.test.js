@@ -24,7 +24,7 @@ const randomObjectId = () => {
 
 describe("JWT Authentication", () => {
   it("failure case - JWT is missing", async () => {
-    const response = await request(app).get("/users/:userId/bookmarks");
+    const response = await request(app).get("/bookmark/users/:userId/bookmarks");
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
     expect(response.body).toEqual({ message: "Invalid Credentials" });
@@ -32,7 +32,7 @@ describe("JWT Authentication", () => {
 
   it("failure case - not a valid JWT", async () => {
     const response = await request(app)
-      .get("/users/:userId/bookmarks")
+      .get("/bookmark/users/:userId/bookmarks")
       .set("Authorization", `Bearer ASDSADASD`);
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
@@ -48,7 +48,7 @@ describe("JWT Authentication", () => {
     });
 
     const response = await request(app)
-      .get(`/users/${userId}/bookmarks`)
+      .get(`/bookmark/users/${userId}/bookmarks`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
@@ -65,7 +65,7 @@ describe("JWT Authentication", () => {
     });
 
     const response = await request(app)
-      .get(`/users/${userId}/bookmarks`)
+      .get(`/bookmark/users/${userId}/bookmarks`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
@@ -92,7 +92,7 @@ describe("JWT Authentication", () => {
     const tamperedToken = `${header}.${tamperedPayload}.${signature}`;
 
     const response = await request(app)
-      .get(`/users/${userId}/bookmarks`)
+      .get(`/bookmark/users/${userId}/bookmarks`)
       .set("Authorization", `Bearer ${tamperedToken}`);
 
     expect(response.status).toBe(StatusCode.UNAUTHORIZED);
@@ -113,7 +113,7 @@ describe("JWT Authorization", () => {
     );
 
     const response = await request(app)
-      .get(`/users/${bookmarkOwnerUserId}/bookmarks`)
+      .get(`/bookmark/users/${bookmarkOwnerUserId}/bookmarks`)
       .set("Authorization", `Bearer ${callingUserToken}`);
 
     expect(response.status).toBe(StatusCode.FORBIDDEN);
@@ -133,7 +133,7 @@ describe("getBookmarks", () => {
     });
 
     const response = await request(app)
-      .get(`/users/${userId}/bookmarks`)
+      .get(`/bookmark/users/${userId}/bookmarks`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(StatusCode.OK);
@@ -155,7 +155,7 @@ describe("getBookmarks", () => {
     }
 
     const response = await request(app)
-      .get(`/users/${userId}/bookmarks`)
+      .get(`/bookmark/users/${userId}/bookmarks`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(response.status).toBe(StatusCode.OK);
@@ -176,7 +176,7 @@ describe("addBookmark", () => {
     });
 
     const response = await request(app)
-      .post(`/users/${userId}/bookmarks`)
+      .post(`/bookmark/users/${userId}/bookmarks`)
       .set("Authorization", `Bearer ${token}`)
       .send({ title });
 
@@ -194,7 +194,7 @@ describe("addBookmark", () => {
     });
 
     const response = await request(app)
-      .post(`/users/${userId}/bookmarks`)
+      .post(`/bookmark/users/${userId}/bookmarks`)
       .set("Authorization", `Bearer ${token}`)
       .send({ title });
 
@@ -213,7 +213,7 @@ describe("removeBookmark", () => {
     });
 
     const response = await request(app)
-      .delete(`/users/${userId}/bookmarks/${title}`)
+      .delete(`/bookmark/users/${userId}/bookmarks/${title}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ title });
 
@@ -233,7 +233,7 @@ describe("removeBookmark", () => {
     });
 
     const response = await request(app)
-      .delete(`/users/${userId}/bookmarks/${title}`)
+      .delete(`/bookmark/users/${userId}/bookmarks/${title}`)
       .set("Authorization", `Bearer ${token}`)
       .send({ title });
 
