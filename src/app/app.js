@@ -12,7 +12,7 @@ const {
 if (process.env.NODE_ENV === "dev") {
   dotenv.config();
 
-  const requiredEnvironmentVariables = ["USER_SERVICE_URL", "MONGO_URI", "JWT_SECRET"];
+  const requiredEnvironmentVariables = ["MONGO_URI", "JWT_SECRET"];
   for (const requiredVariable of requiredEnvironmentVariables) {
     if (!process.env[requiredVariable]) {
       console.error(
