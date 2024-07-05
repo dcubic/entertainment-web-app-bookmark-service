@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 
+const HealthRouter = require('../routers/HealthRouter');
 const BookmarksRouter = require("../routers/BookmarksRouter");
 const {
   checkRequiredParameters,
@@ -23,10 +24,16 @@ if (process.env.NODE_ENV === "dev") {
   }
 }
 
+const healthRouter = new HealthRouter();
 const bookmarksRouter = new BookmarksRouter();
 
 const app = express();
 app.use(bodyParser.json());
+app.use(
+  "/bookmark/health",
+  healthRouter.getRouter(),
+  handleErrors
+)
 app.use(
   "/bookmark/users/:userId/bookmarks",
   checkRequiredParameters(["userId"]),
